@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # -----------------------------
 # Config
 # -----------------------------
-EXCEL_PATH = r"C:\Users\ummek\python_practice\okra_veg.xlsx"
+EXCEL_PATH = r"okra_veg.xlsx"
 TRAIN_SHEET = "Sheet5"
 TEST_SHEET = "Sheet6"
 WINDOW_SIZE = 3
@@ -186,14 +186,14 @@ def make_subject_dicts(df, features, target_col, window_size=3):
     return X_dict, y_dict, date_dict
 
 # -----------------------------
-# 1️⃣ Load and preprocess training sheet
+# Load and preprocess training sheet
 # -----------------------------
 df_train_raw = pd.read_excel(EXCEL_PATH, sheet_name=TRAIN_SHEET)
 df_train = preprocess_sheet(df_train_raw)
 print("Training sheet loaded. Columns:", df_train.columns.tolist())
 
 # -----------------------------
-# 2️⃣ Define features and target (canonical names used by preprocess_sheet)
+# Define features and target (canonical names used by preprocess_sheet)
 # -----------------------------
 env_features = [
     "Temp (F)", "CO2 (ppm)", "Relative Humidity (%)",
@@ -211,7 +211,7 @@ if missing_train:
 df_train["target_original"] = df_train[target_original_col].values
 
 # -----------------------------
-# 3️⃣ Fit scalers on training data only
+# Fit scalers on training data only
 # -----------------------------
 feature_scaler = MinMaxScaler()
 target_scaler = MinMaxScaler()
@@ -222,7 +222,7 @@ df_train["target_scaled"] = target_scaler.fit_transform(df_train[["target_origin
 target_col_scaled = "target_scaled"
 
 # -----------------------------
-# 4️⃣ Create sequences for training (per-plant)
+# Create sequences for training (per-plant)
 # -----------------------------
 X_train_dict, y_train_dict, date_train_dict = make_subject_dicts(df_train, env_features, target_col_scaled, window_size=WINDOW_SIZE)
 
@@ -235,7 +235,7 @@ y_train_all = np.hstack(list(y_train_dict.values()))
 print(f"Total training windows: {X_train_all.shape[0]} (X shape {X_train_all.shape}, y shape {y_train_all.shape})")
 
 # -----------------------------
-# 5️⃣ Split out validation (10% of windows)
+# Split out validation (10% of windows)
 # -----------------------------
 X_tr, X_val, y_tr, y_val = train_test_split(
     X_train_all, y_train_all, test_size=VALIDATION_FRAC, random_state=RANDOM_STATE, shuffle=True
@@ -243,7 +243,7 @@ X_tr, X_val, y_tr, y_val = train_test_split(
 print(f"Train windows: {X_tr.shape[0]}, Val windows: {X_val.shape[0]}")
 
 # -----------------------------
-# 6️⃣ Load and preprocess test sheet
+# Load and preprocess test sheet
 # -----------------------------
 df_test_raw = pd.read_excel(EXCEL_PATH, sheet_name=TEST_SHEET)
 df_test = preprocess_sheet(df_test_raw)
@@ -258,14 +258,14 @@ if missing_test:
 df_test["target_original"] = df_test[target_original_col].values
 
 # -----------------------------
-# 7️⃣ Transform test features & target using the training scalers
+# Transform test features & target using the training scalers
 # -----------------------------
 df_test[env_features] = feature_scaler.transform(df_test[env_features])
 df_test["target_scaled"] = target_scaler.transform(df_test[["target_original"]])
 target_col_scaled = "target_scaled"
 
 # -----------------------------
-# 8️⃣ Create sequences for test (per-plant)
+# Create sequences for test (per-plant)
 # -----------------------------
 X_test_dict, y_test_dict, date_test_dict = make_subject_dicts(df_test, env_features, target_col_scaled, window_size=WINDOW_SIZE)
 
@@ -277,7 +277,7 @@ else:
     print(f"Total test windows: {X_test_all.shape[0]} (X_test shape {X_test_all.shape}, y_test shape {y_test_all.shape})")
 
 # -----------------------------
-# 9️⃣ Build LSTM model
+# Build LSTM model
 # -----------------------------
 n_timesteps = X_tr.shape[1]
 n_features = X_tr.shape[2]
@@ -291,13 +291,13 @@ model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
 model.summary()
 
 # -----------------------------
-# 10️⃣ Train model (with validation)
+# Train model (with validation)
 # -----------------------------
 history = model.fit(X_tr, y_tr, validation_data=(X_val, y_val),
                     epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=1)
 
 # -----------------------------
-# 11️⃣ Evaluate on test set (global metrics)
+# Evaluate on test set (global metrics)
 # -----------------------------
 if len(X_test_dict) > 0:
     y_pred_test = model.predict(X_test_all, verbose=0)
@@ -317,7 +317,7 @@ if len(X_test_dict) > 0:
     print(f"MAE:  {mae:.4f}")
 
 # -----------------------------
-# 12️⃣ Per-plant plots & metrics (test). Use actual dates from date_test_dict
+# Per-plant plots & metrics (test). Use actual dates from date_test_dict
 # -----------------------------
 pred_dict = {}
 if len(X_test_dict) > 0:
