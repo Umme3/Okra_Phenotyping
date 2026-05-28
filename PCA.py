@@ -4,7 +4,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import numpy as np
-df = pd.read_excel(r"C:\Users\ummek\Downloads\POSTDOC\DataAnalysis\data_for_cluster.xlsx", sheet_name='seedling_data')
+df = pd.read_excel(r"data_for_cluster.xlsx", sheet_name='seedling_data')
 #print(df)
 df = df.fillna(7)
 #print(df.columns.tolist())
@@ -48,7 +48,7 @@ plt.show()
 cluster_summary = df.groupby("Cluster").mean(numeric_only=True)
 pd.set_option("display.max_columns", None)
 print(cluster_summary)
-df2=pd.read_excel(r"C:\Users\ummek\Downloads\POSTDOC\DataAnalysis\data_for_cluster.xlsx", sheet_name='Sheet4')
+df2=pd.read_excel(r"data_for_cluster.xlsx", sheet_name='Sheet4')
 result1=df2.loc[df2['Cluster']==0,'Subject']
 result2=df2.loc[df2['Cluster']==1,'Subject']
 result3=df2.loc[df2['Cluster']==2,'Subject']
