@@ -4,7 +4,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
-df = pd.read_excel(r"C:\Users\ummek\Downloads\POSTDOC\DataAnalysis\data_for_cluster.xlsx", sheet_name='seedling_data')
+df = pd.read_excel(r"data_for_cluster.xlsx", sheet_name='seedling_data')
 #print(df)
 df = df.fillna(7)
 #print(df.columns.tolist())
