@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-EXCEL_PATH = r"C:\Users\ummek\python_practice\okra_veg.xlsx"
-FLOWERING_FILE = r"C:\Users\ummek\python_practice\first_flowering_dates.xlsx"
+EXCEL_PATH = r"okra_veg.xlsx"
+FLOWERING_FILE = r"first_flowering_dates.xlsx"
 
 
 
