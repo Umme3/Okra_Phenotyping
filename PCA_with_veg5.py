@@ -12,8 +12,8 @@ features = [
     'Seed Mass(mg)', 'Seed Diameter (mm)', 'day_radicle emergence', 'day_primary_root', 'day_roothair_primary_root', 
     'Plumule Emergence_day', 'day_secondary_root', 'day_roothair_secondary_root', 'day_tertiary_root', 'root_length_day6 (mm)', 'root_dia_day6 (mm)'
 ]
-df5 = pd.read_excel(r"C:\Users\ummek\python_practice\okra_veg.xlsx", sheet_name='Sheet5')
-df6 = pd.read_excel(r"C:\Users\ummek\python_practice\okra_veg.xlsx", sheet_name='Sheet6')
+df5 = pd.read_excel(r"okra_veg.xlsx", sheet_name='Sheet5')
+df6 = pd.read_excel(r"okra_veg.xlsx", sheet_name='Sheet6')
 
 df_env = pd.concat([df5, df6], ignore_index=True)
 df_env.columns = df_env.columns.str.strip()
