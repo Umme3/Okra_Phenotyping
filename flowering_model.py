@@ -33,23 +33,8 @@ features = features.merge(
 )
 
 features_before = features[features['Date'] < features['Date_flower']]
-# ---------------------------
 
-# ---------------------------
-#features_summary = features_before.groupby('Subject').agg({
-#    'Temp (F)': 'mean',
-#    'CO2 (ppm)': 'mean',
-#    'Relative Humidity (%)': 'mean',
-#    'Luminous Flux (lux)': 'mean',
-#    'Stem Diameter(mm)': 'mean',
-#    'Plant height(mm)': 'mean',
-#    'Number of internodes': 'mean',
-#    'Number of leaves': 'mean',
-#    'Soil Temperature (F)': 'mean',
-#    'Soil PH':'mean',
-#    'Soil moisture content (%)':'mean'
 
-#}).reset_index()
 features_summary = features_before.groupby('Subject').agg({
     'Temp (F)': ['mean', 'max', 'min', 'sum'],
     'CO2 (ppm)': 'mean',
@@ -58,7 +43,7 @@ features_summary = features_before.groupby('Subject').agg({
     'Soil Temperature (F)': ['mean', 'max', 'min'],
     'Soil PH': 'mean',
     'Soil moisture content (%)': ['mean', 'sum'],
-    'Date': 'count'  # number of days observed
+    'Date': 'count'  
 }).reset_index()
 
 features_summary.columns = ['_'.join(col).strip('_') for col in features_summary.columns]
@@ -66,10 +51,7 @@ features_summary.columns = ['_'.join(col).strip('_') for col in features_summary
 
 data = flowering.merge(features_summary, on='Subject')
 print("Data ready for modeling:")
-#print(data)
 
-#X = data[['Temp (F)', 'CO2 (ppm)', 'Relative Humidity (%)', 'Luminous Flux (lux)', 'Stem Diameter(mm)', 'Plant height(mm)', 'Number of internodes','Number of leaves',
-#          'Soil Temperature (F)','Soil PH', 'Soil moisture content (%)']]
 
 X = data.drop(columns=['Subject', 'Date', 'Days_to_Flower'])
 y = data['Days_to_Flower']
@@ -112,12 +94,5 @@ plt.xlabel("Subject")
 plt.title("Actual vs Predicted Days to Flower per Subject")
 plt.legend()
 
-# plt.tight_layout()
-# plt.show()
-# plt.figure(figsize=(8, 5))
-# plt.barh(feature_importance['Feature'], feature_importance['Importance'])
-# plt.gca().invert_yaxis()
-# plt.xlabel("Importance")
-# plt.title("Random Forest Feature Importance")
-# plt.tight_layout()
+
 # plt.show()
