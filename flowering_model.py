@@ -94,5 +94,3 @@ plt.xlabel("Subject")
 plt.title("Actual vs Predicted Days to Flower per Subject")
 plt.legend()
 
-
-# plt.show()
