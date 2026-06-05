@@ -10,7 +10,7 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 
 
-EXCEL_PATH = r"C:\Users\ummek\python_practice\okra_veg.xlsx"
+EXCEL_PATH = r"okra_veg.xlsx"
 TRAIN_SHEET = "Sheet5"
 TEST_SHEET = "Sheet6"
 WINDOW_SIZE = 3
