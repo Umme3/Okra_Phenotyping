@@ -9,10 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 
-# -----------------------------
-# Config
-# -----------------------------
-EXCEL_PATH = r"okra_veg.xlsx"
+
+EXCEL_PATH = r"C:\Users\ummek\python_practice\okra_veg.xlsx"
 TRAIN_SHEET = "Sheet5"
 TEST_SHEET = "Sheet6"
 WINDOW_SIZE = 3
@@ -21,9 +19,6 @@ VALIDATION_FRAC = 0.10
 BATCH_SIZE = 8
 EPOCHS = 200
 
-# -----------------------------
-# Helper functions
-# -----------------------------
 def preprocess_sheet(df_raw):
     """
     - Normalize column names
@@ -36,25 +31,22 @@ def preprocess_sheet(df_raw):
       - 'Plant height(mm)', 'Stem Diameter(mm)', 'No of internodes', 'No of pods'
     """
     df = df_raw.copy()
-    # normalize column names
+
     df.columns = df.columns.str.replace('\n', ' ', regex=False).str.strip()
 
-    # Convert Date column (format YYYYMMDD integer/string)
+
     df['Date'] = pd.to_datetime(df['Date'], format='%Y%m%d', errors='coerce')
 
-    # Ensure Time exists:
     if 'Time' not in df.columns:
         df['Time'] = 0
 
-    # Sort and interpolate per Subject
+
     df = df.sort_values(['Subject', 'Date', 'Time']).reset_index(drop=True)
     df = df.groupby('Subject').apply(lambda g: g.interpolate(method='linear')).reset_index(drop=True)
 
-    # If training sheet already has 'Plant height (mm)' keep it; else convert 'Stem Length (mm)'*25.4 when present
     if 'Plant height (mm)' not in df.columns and 'Stem Length (mm)' in df.columns:
         df['Plant height (mm)'] = df['Stem Length (mm)'] * 25.4
 
-    # Harmonize various names to our canonical names
     cols_lower = {c.lower(): c for c in df.columns}
 
     def find_col(variants):
@@ -64,16 +56,15 @@ def preprocess_sheet(df_raw):
                 return cols_lower[key]
         return None
 
-    # Map potential variants
+
     ph_col = find_col(['Plant height (mm)', 'Plant height(mm)', 'plant height (mm)', 'plant height(mm)'])
     stem_d_col = find_col(['Stem Diameter (mm)', 'Stem Diameter(mm)', 'Stem diameter (mm)'])
     internodes_col = find_col(['Number of internodes', 'No. of Internodes', 'No of internodes', 'Number of Internodes'])
     pods_col = find_col(['Number of pods', 'No. of Fruits', 'Number of Fruits', 'No of pods'])
 
-    # Make canonical columns (create if necessary)
     if ph_col:
         df['Plant height(mm)'] = df[ph_col].values
-    # else earlier conversion from 'Stem Length (mm)' already created 'Plant height (mm)' then ph_col points to that
+
 
     if stem_d_col:
         df['Stem Diameter(mm)'] = df[stem_d_col].values
@@ -90,7 +81,7 @@ def preprocess_sheet(df_raw):
     else:
         df['No of pods'] = df.get('No of pods', np.nan)
 
-    # Apply isotonic (for height/diameter) and cummax for counts, per Subject
+
     iso = IsotonicRegression(increasing=True)
 
     # For safety set columns present
@@ -103,15 +94,13 @@ def preprocess_sheet(df_raw):
         idx = group.index
         x = np.arange(len(group))
 
-        # fetch series or NaNs
         y1 = group['Plant height(mm)'].astype(float).values
         y2 = group['Stem Diameter(mm)'].astype(float).values
         y3 = group['No of internodes'].astype(float).values
         y4 = group['No of pods'].astype(float).values
 
-        # Handle isotonic safely: need finite numeric arrays; fallback to interpolation if necessary
         if np.isfinite(y1).any():
-            # fill small gaps for fit
+
             y1_filled = pd.Series(y1).interpolate().fillna(method='ffill').fillna(method='bfill').values
             try:
                 y_fixed1 = iso.fit_transform(x, y1_filled)
@@ -144,7 +133,6 @@ def preprocess_sheet(df_raw):
         df.loc[idx, 'No of internodes'] = y_fixed3
         df.loc[idx, 'No of pods'] = y_fixed4
 
-    # final sort and return
     df = df.sort_values(['Subject', 'Date', 'Time']).reset_index(drop=True)
     return df
 
@@ -158,9 +146,9 @@ def create_sequences(group, features, target_col, window_size=3):
     data = group[features + [target_col]].values
     date_values = group['Date'].values
     for i in range(len(data) - window_size):
-        X.append(data[i:i+window_size, :-1])         # features for window
-        y.append(data[i+window_size, -1])           # target at next timestep
-        dates.append(date_values[i+window_size])    # date for that target
+        X.append(data[i:i+window_size, :-1])        
+        y.append(data[i+window_size, -1])          
+        dates.append(date_values[i+window_size])    
     if len(X) == 0:
         return np.empty((0, window_size, len(features))), np.empty((0,)), np.empty((0,), dtype='datetime64[ns]')
     return np.array(X), np.array(y), np.array(dates, dtype='datetime64[ns]')
@@ -185,100 +173,134 @@ def make_subject_dicts(df, features, target_col, window_size=3):
             date_dict[subj] = d_seq
     return X_dict, y_dict, date_dict
 
-# -----------------------------
-# Load and preprocess training sheet
-# -----------------------------
-df_train_raw = pd.read_excel(EXCEL_PATH, sheet_name=TRAIN_SHEET)
-df_train = preprocess_sheet(df_train_raw)
-print("Training sheet loaded. Columns:", df_train.columns.tolist())
 
-# -----------------------------
-# Define features and target (canonical names used by preprocess_sheet)
-# -----------------------------
+
+df_raw = pd.concat([
+    pd.read_excel(EXCEL_PATH, sheet_name=TRAIN_SHEET),
+    pd.read_excel(EXCEL_PATH, sheet_name=TEST_SHEET)
+], ignore_index=True)
+df = preprocess_sheet(df_raw)
+
+print("Combined dataset shape:", df.shape)
+
+
 env_features = [
-    "Temp (F)", "CO2 (ppm)", "Relative Humidity (%)",
-    "Luminous Flux (lux)", "Soil Temperature (F)",
-    "Soil PH", "Soil moisture content (%)", "Number of pods"
+    "Temp (F)",
+    "CO2 (ppm)",
+    "Relative Humidity (%)",
+    "Luminous Flux (lux)",
+    "Soil Temperature (F)",
+    "Soil PH",
+    "Soil moisture content (%)",
+    "No of pods"
 ]
-target_original_col = "Number of pods"
 
-# sanity check presence
-missing_train = [c for c in env_features if c not in df_train.columns]
-if missing_train:
-    raise ValueError(f"Missing required feature(s) in training data: {missing_train}")
+target_original_col = "No of pods"
 
-# create target_original for inverse-scaling later
-df_train["target_original"] = df_train[target_original_col].values
+df["target_original"] = df[target_original_col]
 
-# -----------------------------
-# Fit scalers on training data only
-# -----------------------------
+
+
+subjects = sorted(df["Subject"].unique())
+
+print("Total plants:", len(subjects))
+
+train_subjects, temp_subjects = train_test_split(
+    subjects,
+    test_size=0.40,
+    random_state=RANDOM_STATE
+)
+
+val_subjects, test_subjects = train_test_split(
+    temp_subjects,
+    test_size=0.75,
+    random_state=RANDOM_STATE
+)
+
+print("Training plants:", len(train_subjects))
+print("Validation plants:", len(val_subjects))
+print("Testing plants:", len(test_subjects))
+
+print("Train IDs:", train_subjects)
+print("Val IDs:", val_subjects)
+print("Test IDs:", test_subjects)
+
+
+
+df_train = df[df["Subject"].isin(train_subjects)].copy()
+
+df_val = df[df["Subject"].isin(val_subjects)].copy()
+
+df_test = df[df["Subject"].isin(test_subjects)].copy()
+
+
+
 feature_scaler = MinMaxScaler()
 target_scaler = MinMaxScaler()
 
-# Fit on entire training rows (per-feature)
-df_train[env_features] = feature_scaler.fit_transform(df_train[env_features])
-df_train["target_scaled"] = target_scaler.fit_transform(df_train[["target_original"]])
-target_col_scaled = "target_scaled"
-
-# -----------------------------
-# Create sequences for training (per-plant)
-# -----------------------------
-X_train_dict, y_train_dict, date_train_dict = make_subject_dicts(df_train, env_features, target_col_scaled, window_size=WINDOW_SIZE)
-
-if len(X_train_dict) == 0:
-    raise ValueError("No training sequences could be generated. Decrease WINDOW_SIZE or check training data.")
-
-# Combine all training windows into arrays (for random splitting into train/val)
-X_train_all = np.vstack(list(X_train_dict.values()))
-y_train_all = np.hstack(list(y_train_dict.values()))
-print(f"Total training windows: {X_train_all.shape[0]} (X shape {X_train_all.shape}, y shape {y_train_all.shape})")
-
-# -----------------------------
-# Split out validation (10% of windows)
-# -----------------------------
-X_tr, X_val, y_tr, y_val = train_test_split(
-    X_train_all, y_train_all, test_size=VALIDATION_FRAC, random_state=RANDOM_STATE, shuffle=True
+df_train[env_features] = feature_scaler.fit_transform(
+    df_train[env_features]
 )
-print(f"Train windows: {X_tr.shape[0]}, Val windows: {X_val.shape[0]}")
 
-# -----------------------------
-# Load and preprocess test sheet
-# -----------------------------
-df_test_raw = pd.read_excel(EXCEL_PATH, sheet_name=TEST_SHEET)
-df_test = preprocess_sheet(df_test_raw)
-print("Test sheet loaded. Columns:", df_test.columns.tolist())
+df_train["target_scaled"] = target_scaler.fit_transform(
+    df_train[["target_original"]]
+)
 
-# ensure required columns present
-missing_test = [c for c in env_features if c not in df_test.columns]
-if missing_test:
-    raise ValueError(f"Missing required feature(s) in test data: {missing_test}")
+df_val[env_features] = feature_scaler.transform(
+    df_val[env_features]
+)
 
-# create target_original on test (real units) and then scale using training scalers
-df_test["target_original"] = df_test[target_original_col].values
+df_val["target_scaled"] = target_scaler.transform(
+    df_val[["target_original"]]
+)
 
-# -----------------------------
-# Transform test features & target using the training scalers
-# -----------------------------
-df_test[env_features] = feature_scaler.transform(df_test[env_features])
-df_test["target_scaled"] = target_scaler.transform(df_test[["target_original"]])
+df_test[env_features] = feature_scaler.transform(
+    df_test[env_features]
+)
+
+df_test["target_scaled"] = target_scaler.transform(
+    df_test[["target_original"]]
+)
+
 target_col_scaled = "target_scaled"
 
-# -----------------------------
-# Create sequences for test (per-plant)
-# -----------------------------
-X_test_dict, y_test_dict, date_test_dict = make_subject_dicts(df_test, env_features, target_col_scaled, window_size=WINDOW_SIZE)
 
-if len(X_test_dict) == 0:
-    print("Warning: no test sequences created. Maybe window_size too large or test plants too short.")
-else:
-    X_test_all = np.vstack(list(X_test_dict.values()))
-    y_test_all = np.hstack(list(y_test_dict.values()))
-    print(f"Total test windows: {X_test_all.shape[0]} (X_test shape {X_test_all.shape}, y_test shape {y_test_all.shape})")
+X_train_dict, y_train_dict, date_train_dict = make_subject_dicts(
+    df_train,
+    env_features,
+    target_col_scaled,
+    window_size=WINDOW_SIZE
+)
 
-# -----------------------------
-# Build LSTM model
-# -----------------------------
+X_val_dict, y_val_dict, date_val_dict = make_subject_dicts(
+    df_val,
+    env_features,
+    target_col_scaled,
+    window_size=WINDOW_SIZE
+)
+
+X_test_dict, y_test_dict, date_test_dict = make_subject_dicts(
+    df_test,
+    env_features,
+    target_col_scaled,
+    window_size=WINDOW_SIZE
+)
+
+
+
+X_tr = np.vstack(list(X_train_dict.values()))
+y_tr = np.hstack(list(y_train_dict.values()))
+
+X_val = np.vstack(list(X_val_dict.values()))
+y_val = np.hstack(list(y_val_dict.values()))
+
+X_test_all = np.vstack(list(X_test_dict.values()))
+y_test_all = np.hstack(list(y_test_dict.values()))
+
+print("Training windows:", X_tr.shape[0])
+print("Validation windows:", X_val.shape[0])
+print("Testing windows:", X_test_all.shape[0])
+
 n_timesteps = X_tr.shape[1]
 n_features = X_tr.shape[2]
 
@@ -290,15 +312,11 @@ model = Sequential([
 model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
 model.summary()
 
-# -----------------------------
-# Train model (with validation)
-# -----------------------------
+
 history = model.fit(X_tr, y_tr, validation_data=(X_val, y_val),
                     epochs=EPOCHS, batch_size=BATCH_SIZE, verbose=1)
 
-# -----------------------------
-# Evaluate on test set (global metrics)
-# -----------------------------
+
 if len(X_test_dict) > 0:
     y_pred_test = model.predict(X_test_all, verbose=0)
     # inverse transform to real units
@@ -316,9 +334,7 @@ if len(X_test_dict) > 0:
     print(f"RMSE: {rmse:.4f}")
     print(f"MAE:  {mae:.4f}")
 
-# -----------------------------
-# Per-plant plots & metrics (test). Use actual dates from date_test_dict
-# -----------------------------
+
 pred_dict = {}
 if len(X_test_dict) > 0:
     for subj, X_sub in X_test_dict.items():
@@ -357,7 +373,7 @@ if len(X_test_dict) > 0:
         plt.plot(dates, y_pred, marker='x', label='Predicted')
         plt.title(f'Plant {subj}')
         plt.xlabel('Date')
-        plt.ylabel('Number of pods')
+        plt.ylabel('Number of fruits')
         plt.legend()
         plt.xticks(rotation=45)
         plt.tight_layout()
